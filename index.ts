@@ -34,6 +34,9 @@ const SESSIONS = {
 
 const GROUPS = {
   "321413513": { name: "London dnb crew" },
+  "64737": { name: "Brighton dingbats" },
+  "753737": { name: "Family" },
+  "846868": { name: "Football team" },
 };
 
 app.get("/", (req, res) => {
@@ -46,19 +49,21 @@ app.get("/bananas", (req, res) => {
 
 app.get("/groups", (req, res) => {
   const sessionKey = req.headers["gec-session-key"];
-
-  //console.log({headers: req.headers});
-  const validSessionKeys = Object.keys(SESSIONS);
-
-  for (const validSessionKey of validSessionKeys) {
-    //console.log({validSessionKey, sessionKey});
-    if (sessionKey === validSessionKey) {
-      res.send(GROUPS);
-      return
-    } 
-  }
-  res.send("You are not logged in");
+  console.log('Request made', {sessionKey})
   
+  if (typeof sessionKey !== "string") {
+    sessionKey;
+    res.send(
+      "Invalid request - multiple or zero header values for session key"
+      );
+    return;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(SESSIONS, sessionKey)) {
+    res.send(GROUPS);
+  } else {
+    res.send("You are not logged in");
+  }
 });
 
 app.listen(port, () => {
