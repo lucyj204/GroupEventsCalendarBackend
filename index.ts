@@ -1,38 +1,12 @@
 import express from "express";
 import * as pg from "pg";
+import { isIfStatement } from "typescript";
 import * as util from "util";
 
 const app = express();
 const port = 3000;
 
 type SessionKey = string;
-
-const SESSIONS = {
-  abc5365731695765183758165786: {
-    user: "lucyj204",
-    expiry: "2021-10-30T00:11:00Z",
-  },
-  abc5365731695765183758165253: {
-    user: "lucyj204",
-    expiry: "2021-10-30T00:11:00Z",
-  },
-  abc5365731695765183758165352: {
-    user: "lucyj204",
-    expiry: "2021-10-30T00:11:00Z",
-  },
-  abc5365731695765183758162362: {
-    user: "lucyj204",
-    expiry: "2021-10-30T00:11:00Z",
-  },
-  abc5365731695765183758162322: {
-    user: "lucyj204",
-    expiry: "2021-10-30T00:11:00Z",
-  },
-  abc5365731695765183757586844: {
-    user: "alexweej",
-    expiry: "2021-10-30T00:11:00Z",
-  }
-};
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
@@ -54,7 +28,7 @@ app.get("/groups", async (req, res) => {
     return;
   }
 
-  if (Object.prototype.hasOwnProperty.call(SESSIONS, sessionKey)) {
+  if (await isLoggedIn(sessionKey)) {
     const groups = await getAllGroups();
     groups[0].id;
     res.send(groups);
@@ -77,6 +51,24 @@ async function testPg() {
   const res = await client.query("SELECT 421424 AS foo;");
   console.log(util.inspect(res.rows, { colors: true, depth: Infinity }));
   await client.end();
+}
+
+async function isLoggedIn(id: string): Promise<boolean> {
+  const client = new pg.Client({
+    user: "postgres",
+    password: "mysecretpassword",
+  });
+  await client.connect();
+  const res = await client.query(`SELECT "id" FROM "session"`);
+  console.log(util.inspect(res.rows, { colors: true, depth: Infinity }));
+  await client.end();
+
+  for (const row of res.rows) {
+    if (row.id === id) {
+      return true;
+    }
+  }
+  return false;
 }
 
 async function getAllGroups(): Promise<Array<{ id: string; name: string }>> {
