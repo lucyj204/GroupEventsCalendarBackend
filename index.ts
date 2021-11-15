@@ -1,12 +1,14 @@
 import express from "express";
 import * as pg from "pg";
-import { isIfStatement } from "typescript";
 import * as util from "util";
+import * as uuid from "uuid";
 
 const app = express();
 const port = 3000;
 
 type SessionKey = string;
+
+app.use(express.json());
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
@@ -42,28 +44,32 @@ app.get("/groups", async (req, res) => {
   }
 });
 
+// curl --verbose -X PUT http://localhost:3000/groups  -H 'Content-Type: application/json' -H 'GEC-Session-Key: abc5365731695765183758165253' -d '{"name": "lucy group"}'
+app.put("/groups", async (req, res) => {
+  console.log("Request", req.body);
+
+  const body = req.body;
+
+  addNewGroup(body.name);
+
+  res.send("test");
+});
+
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`);
 });
 
-// Unused
-async function testPg() {
+async function getPgClient(): Promise<pg.Client> {
   const client = new pg.Client({
     user: "postgres",
     password: "mysecretpassword",
   });
   await client.connect();
-  const res = await client.query("SELECT 421424 AS foo;");
-  console.log(util.inspect(res.rows, { colors: true, depth: Infinity }));
-  await client.end();
+  return client;
 }
 
 async function isLoggedIn(id: string): Promise<boolean> {
-  const client = new pg.Client({
-    user: "postgres",
-    password: "mysecretpassword",
-  });
-  await client.connect();
+  const client = await getPgClient();
   const res = await client.query(`SELECT "id" FROM "session" WHERE id = $1`, [
     id,
   ]);
@@ -73,14 +79,21 @@ async function isLoggedIn(id: string): Promise<boolean> {
 }
 
 async function getAllGroups(): Promise<Array<{ id: string; name: string }>> {
-  const client = new pg.Client({
-    user: "postgres",
-    password: "mysecretpassword",
-  });
-  await client.connect();
+  const client = await getPgClient();
   const res = await client.query(`SELECT "id", "name" FROM "group"`);
   console.log(util.inspect(res.rows, { colors: true, depth: Infinity }));
   await client.end();
   // WARNING: res.rows is any here - we must guarantee ourselves that the data has both id and name properties.
   return res.rows;
 }
+
+async function addNewGroup(name: string): Promise<void> {
+  const client = await getPgClient();
+  await client.query(`INSERT INTO "group" ("id", "name") VALUES ($1, $2)`, [
+    uuid.v4(),
+    name,
+  ]);
+  await client.end();
+}
+
+// curl --verbose -X PUT http://localhost:3000/groups  -H 'Content-Type: application/json' -H 'GEC-Session-Key: abc5365731695765183758165253' -d '{"name": "lucy group"}'
