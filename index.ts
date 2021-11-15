@@ -60,15 +60,9 @@ async function isLoggedIn(id: string): Promise<boolean> {
   });
   await client.connect();
   const res = await client.query(`SELECT "id" FROM "session"`);
-  console.log(util.inspect(res.rows, { colors: true, depth: Infinity }));
   await client.end();
 
-  for (const row of res.rows) {
-    if (row.id === id) {
-      return true;
-    }
-  }
-  return false;
+  return res.rows.some((row) => row.id === id);
 }
 
 async function getAllGroups(): Promise<Array<{ id: string; name: string }>> {
