@@ -59,10 +59,10 @@ async function isLoggedIn(id: string): Promise<boolean> {
     password: "mysecretpassword",
   });
   await client.connect();
-  const res = await client.query(`SELECT "id" FROM "session"`);
+  const res = await client.query(`SELECT "id" FROM "session" WHERE id = $1`, [id]);
   await client.end();
 
-  return res.rows.some((row) => row.id === id);
+  return res.rows.length === 1;
 }
 
 async function getAllGroups(): Promise<Array<{ id: string; name: string }>> {
