@@ -30,10 +30,10 @@ app.get("/groups", async (req, res) => {
 
   if (await isLoggedIn(sessionKey)) {
     const groups = await getAllGroups();
-    const groupsObject: Record<string, {name: string}> = {};
+    const groupsObject: Record<string, { name: string }> = {};
 
     for (const group of groups) {
-      groupsObject[group.id] = {name: group.name};
+      groupsObject[group.id] = { name: group.name };
     }
 
     res.send(groupsObject);
