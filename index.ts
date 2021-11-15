@@ -30,8 +30,13 @@ app.get("/groups", async (req, res) => {
 
   if (await isLoggedIn(sessionKey)) {
     const groups = await getAllGroups();
-    groups[0].id;
-    res.send(groups);
+    const groupsObject: Record<string, {name: string}> = {};
+
+    for (const group of groups) {
+      groupsObject[group.id] = {name: group.name};
+    }
+
+    res.send(groupsObject);
   } else {
     res.send("You are not logged in");
   }
@@ -59,7 +64,9 @@ async function isLoggedIn(id: string): Promise<boolean> {
     password: "mysecretpassword",
   });
   await client.connect();
-  const res = await client.query(`SELECT "id" FROM "session" WHERE id = $1`, [id]);
+  const res = await client.query(`SELECT "id" FROM "session" WHERE id = $1`, [
+    id,
+  ]);
   await client.end();
 
   return res.rows.length === 1;
