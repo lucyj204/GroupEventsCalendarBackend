@@ -1,4 +1,5 @@
 import express from "express";
+import * as pg from "pg";
 const app = express();
 const port = 3000;
 
@@ -69,3 +70,13 @@ app.get("/groups", (req, res) => {
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`);
 });
+
+async function testPg() {
+  const client = new pg.Client({user: "postgres", password: "mysecretpassword"});
+  await client.connect();
+  const res = await client.query("SELECT 1");
+  console.log({res});
+  await client.end();
+}
+
+testPg();
