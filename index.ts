@@ -66,22 +66,11 @@ app.put("/groups", async (req, res) => {
   res.send("test add");
 });
 
-app.delete("/groups", async (req, res) => {
+// 
+app.delete("/groups/:id", async (req, res) => {
   console.log("Request", req.body);
 
-  const body: unknown = req.body;
-
-  if (!(typeof body === "object" && body !== null)) {
-    res.send("not an object");
-    return;
-  }
-
-  if (!("name" in body)) {
-    res.send("name missing");
-    return;
-  }
-
-  deleteGroup((body as any).name);
+  deleteGroup(req.params.id);
   res.send("test delete");
 });
 
@@ -126,8 +115,8 @@ async function addNewGroup(name: string): Promise<void> {
   await client.end();
 }
 
-async function deleteGroup(name: string): Promise<void> {
+async function deleteGroup(id: string): Promise<void> {
   const client = await getPgClient();
-  await client.query(`DELETE FROM "group" WHERE "name" = $1`, [name]);
+  await client.query(`DELETE FROM "group" WHERE "id" = $1`, [id]);
   await client.end();
 }
