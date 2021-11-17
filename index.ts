@@ -1,5 +1,6 @@
 import express from "express";
 import * as pg from "pg";
+import { visitFunctionBody } from "typescript";
 import * as util from "util";
 import * as uuid from "uuid";
 
@@ -48,11 +49,40 @@ app.get("/groups", async (req, res) => {
 app.put("/groups", async (req, res) => {
   console.log("Request", req.body);
 
-  const body = req.body;
+  const body: unknown = req.body;
 
-  addNewGroup(body.name);
+  if (!(typeof body === "object" && body !== null)) {
+    res.send("not an object");
+    return;
+  }
 
-  res.send("test");
+  if (!("name" in body)) {
+    res.send("name missing");
+    return;
+  }
+  // TODO: Improve type checking with superstruct library or similar.
+  addNewGroup((body as any).name);
+
+  res.send("test add");
+});
+
+app.delete("/groups", async (req, res) => {
+  console.log("Request", req.body);
+
+  const body: unknown = req.body;
+
+  if (!(typeof body === "object" && body !== null)) {
+    res.send("not an object");
+    return;
+  }
+
+  if (!("name" in body)) {
+    res.send("name missing");
+    return;
+  }
+
+  deleteGroup((body as any).name);
+  res.send("test delete");
 });
 
 app.listen(port, () => {
@@ -96,4 +126,8 @@ async function addNewGroup(name: string): Promise<void> {
   await client.end();
 }
 
-// curl --verbose -X PUT http://localhost:3000/groups  -H 'Content-Type: application/json' -H 'GEC-Session-Key: abc5365731695765183758165253' -d '{"name": "lucy group"}'
+async function deleteGroup(name: string): Promise<void> {
+  const client = await getPgClient();
+  await client.query(`DELETE FROM "group" WHERE "name" = $1`, [name]);
+  await client.end();
+}
