@@ -3,6 +3,7 @@ import * as pg from "pg";
 import { visitFunctionBody } from "typescript";
 import * as util from "util";
 import * as uuid from "uuid";
+import * as http from "http";
 
 const app = express();
 const port = 3000;
@@ -19,8 +20,11 @@ app.get("/bananas", (req, res) => {
   res.send("mmmm bananas");
 });
 
-app.get("/groups", async (req, res) => {
-  const sessionKey = req.headers["gec-session-key"];
+async function checkLoggedIn(
+  headers: http.IncomingHttpHeaders,
+  res: any // TODO: Figure out the right type for our HTTP responses.
+): Promise<boolean> {
+  const sessionKey = headers["gec-session-key"];
   console.log("Request made", { sessionKey });
 
   if (typeof sessionKey !== "string") {
@@ -28,14 +32,22 @@ app.get("/groups", async (req, res) => {
     res.send(
       "Invalid request - multiple or zero header values for session key"
     );
-    return;
+    return false;
   }
 
   if (!(await isLoggedIn(sessionKey))) {
     res.send("You are not logged in");
+    return false;
+  }
+
+  return true;
+}
+
+app.get("/groups", async (req, res) => {
+  if (!(await checkLoggedIn(req.headers, res))) {
     return;
   }
-  
+
   const groups = await getAllGroups();
   const groupsObject: Record<string, { name: string }> = {};
 
