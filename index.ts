@@ -50,6 +50,7 @@ app.get("/events", async (req, res) => {
 
   const groupId = "321413513"
   const events = await getAllEventsForGroup(groupId);
+
   const eventsObject: Record<string, { name: string}> = {};
 
   for (const event of events) {
@@ -145,7 +146,7 @@ async function getAllGroups(): Promise<Array<{ id: string; name: string }>> {
 
 async function getAllEventsForGroup(id: string): Promise<Array<{ id: string; name: string; }>> {
   const client = await getPgClient();
-  const res = await client.query(`SELECT "event_id", "event_name" FROM "event" WHERE id = $1`, [id]);
+  const res = await client.query(`SELECT "id", "name" FROM "event" WHERE "group_id" = $1`, [id]);
   console.log(util.inspect(res.rows, { colors: true, depth: Infinity }));
   await client.end();
   return res.rows;
