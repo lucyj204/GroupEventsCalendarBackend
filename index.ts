@@ -31,18 +31,19 @@ app.get("/groups", async (req, res) => {
     return;
   }
 
-  if (await isLoggedIn(sessionKey)) {
-    const groups = await getAllGroups();
-    const groupsObject: Record<string, { name: string }> = {};
-
-    for (const group of groups) {
-      groupsObject[group.id] = { name: group.name };
-    }
-
-    res.send(groupsObject);
-  } else {
+  if (!(await isLoggedIn(sessionKey))) {
     res.send("You are not logged in");
+    return;
   }
+  
+  const groups = await getAllGroups();
+  const groupsObject: Record<string, { name: string }> = {};
+
+  for (const group of groups) {
+    groupsObject[group.id] = { name: group.name };
+  }
+
+  res.send(groupsObject);
 });
 
 // curl --verbose -X PUT http://localhost:3000/groups  -H 'Content-Type: application/json' -H 'GEC-Session-Key: abc5365731695765183758165253' -d '{"name": "lucy group"}'
@@ -66,7 +67,7 @@ app.put("/groups", async (req, res) => {
   res.send("test add");
 });
 
-// 
+//
 app.delete("/groups/:id", async (req, res) => {
   console.log("Request", req.body);
 
