@@ -43,6 +43,22 @@ async function checkLoggedIn(
   return true;
 }
 
+app.get("/events", async (req, res) => {
+  if (!(await checkLoggedIn(req.headers, res))) {
+    return;
+  }
+
+  const groupId = "321413513"
+  const events = await getAllEventsForGroup(groupId);
+  const eventsObject: Record<string, { name: string}> = {};
+
+  for (const event of events) {
+    eventsObject[event.id] = { name: event.name };
+  }
+
+  res.send(eventsObject);
+})
+
 app.get("/groups", async (req, res) => {
   if (!(await checkLoggedIn(req.headers, res))) {
     return;
@@ -124,6 +140,14 @@ async function getAllGroups(): Promise<Array<{ id: string; name: string }>> {
   console.log(util.inspect(res.rows, { colors: true, depth: Infinity }));
   await client.end();
   // WARNING: res.rows is any here - we must guarantee ourselves that the data has both id and name properties.
+  return res.rows;
+}
+
+async function getAllEventsForGroup(id: string): Promise<Array<{ id: string; name: string; }>> {
+  const client = await getPgClient();
+  const res = await client.query(`SELECT "event_id", "event_name" FROM "event" WHERE id = $1`, [id]);
+  console.log(util.inspect(res.rows, { colors: true, depth: Infinity }));
+  await client.end();
   return res.rows;
 }
 
