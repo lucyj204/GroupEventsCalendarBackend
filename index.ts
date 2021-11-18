@@ -78,7 +78,7 @@ app.put("/groups", async (req, res) => {
     return;
   }
   // TODO: Improve type checking with superstruct library or similar.
-  addNewGroup((body as any).name);
+  await addNewGroup((body as any).name);
 
   res.send({ ok: {} });
 });
@@ -91,7 +91,7 @@ app.delete("/groups/:id", async (req, res) => {
 
   console.log("Request", req.body);
 
-  deleteGroup(req.params.id);
+  await deleteGroup(req.params.id);
   res.send("test delete");
 });
 
