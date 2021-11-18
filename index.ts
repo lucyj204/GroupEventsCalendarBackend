@@ -60,6 +60,10 @@ app.get("/groups", async (req, res) => {
 
 // curl --verbose -X PUT http://localhost:3000/groups  -H 'Content-Type: application/json' -H 'GEC-Session-Key: abc5365731695765183758165253' -d '{"name": "lucy group"}'
 app.put("/groups", async (req, res) => {
+  if (!(await checkLoggedIn(req.headers, res))) {
+    return;
+  }
+
   console.log("Request", req.body);
 
   const body: unknown = req.body;
@@ -76,11 +80,15 @@ app.put("/groups", async (req, res) => {
   // TODO: Improve type checking with superstruct library or similar.
   addNewGroup((body as any).name);
 
-  res.send("test add");
+  res.send({ ok: {} });
 });
 
 //
 app.delete("/groups/:id", async (req, res) => {
+  if (!(await checkLoggedIn(req.headers, res))) {
+    return;
+  }
+
   console.log("Request", req.body);
 
   deleteGroup(req.params.id);
