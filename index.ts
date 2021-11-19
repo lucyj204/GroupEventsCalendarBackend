@@ -48,17 +48,26 @@ app.get("/events", async (req, res) => {
     return;
   }
 
-  const groupId = "321413513"
+  console.log("querystring", req.query);
+
+  const groupId = req.query["group_id"];
+
+  if (typeof groupId !== "string") {
+    res.send("Group ID not provided");
+    console.log(groupId);
+    return;
+  }
+
   const events = await getAllEventsForGroup(groupId);
 
-  const eventsObject: Record<string, { name: string}> = {};
+  const eventsObject: Record<string, { name: string, location: string, startDate: Date, endDate: Date }> = {};
 
   for (const event of events) {
-    eventsObject[event.id] = { name: event.name };
+    eventsObject[event.id] = { name: event.name, location: event.location, startDate: event.startDate, endDate: event.endDate };
   }
 
   res.send(eventsObject);
-})
+});
 
 app.get("/groups", async (req, res) => {
   if (!(await checkLoggedIn(req.headers, res))) {
@@ -144,9 +153,15 @@ async function getAllGroups(): Promise<Array<{ id: string; name: string }>> {
   return res.rows;
 }
 
-async function getAllEventsForGroup(id: string): Promise<Array<{ id: string; name: string; }>> {
+async function getAllEventsForGroup(
+  id: string
+): Promise<Array<{ id: string; name: string; location: string; startDate: Date; endDate: Date }>> {
   const client = await getPgClient();
-  const res = await client.query(`SELECT "id", "name" FROM "event" WHERE "group_id" = $1`, [id]);
+  const res = await client.query(
+    `SELECT "id", "name", "location", "start_date", "end_date" FROM "event" WHERE "group_id" = $1`,
+    [id]
+  );
+
   console.log(util.inspect(res.rows, { colors: true, depth: Infinity }));
   await client.end();
   return res.rows;
