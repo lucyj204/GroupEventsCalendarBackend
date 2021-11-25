@@ -60,11 +60,22 @@ app.get("/events", async (req, res) => {
 
   const events = await getAllEventsForGroup(groupId);
 
-  const eventsObject: Record<string, { name: string, location: string, startDate: Date, endDate: Date }> = {};
+  const eventsObject: Record<
+    string,
+    { name: string; location: string; startDate: Date; endDate: Date }
+  > = {};
 
   for (const event of events) {
-    eventsObject[event.id] = { name: event.name, location: event.location, startDate: event.startDate, endDate: event.endDate };
+    eventsObject[event.id] = {
+      name: event.name,
+      location: event.location,
+      startDate: event.startDate,
+      endDate: event.endDate,
+    };
   }
+
+  console.log("LOGGY LOG OMG", eventsObject);
+  console.log("LOGGY LOG JSON", JSON.stringify(eventsObject));
 
   res.send(eventsObject);
 });
@@ -82,6 +93,55 @@ app.get("/groups", async (req, res) => {
   }
 
   res.send(groupsObject);
+});
+
+app.put("/events", async (req, res) => {
+  if (!(await checkLoggedIn(req.headers, res))) {
+    return;
+  }
+
+  console.log("Request", req.body);
+
+  const body: unknown = req.body;
+
+  if (!(typeof body === "object" && body !== null)) {
+    res.send("not an object");
+    return;
+  }
+
+  if (!("name" in body)) {
+    res.send("name missing");
+    return;
+  }
+
+  if (!("location" in body)) {
+    res.send("location missing");
+    return;
+  }
+
+  if (!("start_date" in body)) {
+    res.send("start date missing");
+    return;
+  }
+
+  if (!("end_date" in body)) {
+    res.send("end date missing");
+    return;
+  }
+
+  if (!("group_id" in body)) {
+    res.send("group id missing");
+    return;
+  }
+
+  await addNewEvent(
+    (body as any).name,
+    (body as any).location,
+    (body as any).start_date,
+    (body as any).end_date,
+    (body as any).group_id
+  );
+  res.send({ ok: {} });
 });
 
 // curl --verbose -X PUT http://localhost:3000/groups  -H 'Content-Type: application/json' -H 'GEC-Session-Key: abc5365731695765183758165253' -d '{"name": "lucy group"}'
@@ -153,9 +213,15 @@ async function getAllGroups(): Promise<Array<{ id: string; name: string }>> {
   return res.rows;
 }
 
-async function getAllEventsForGroup(
-  id: string
-): Promise<Array<{ id: string; name: string; location: string; startDate: Date; endDate: Date }>> {
+async function getAllEventsForGroup(id: string): Promise<
+  Array<{
+    id: string;
+    name: string;
+    location: string;
+    startDate: Date;
+    endDate: Date;
+  }>
+> {
   const client = await getPgClient();
   const res = await client.query(
     `SELECT "id", "name", "location", "start_date", "end_date" FROM "event" WHERE "group_id" = $1`,
@@ -164,7 +230,13 @@ async function getAllEventsForGroup(
 
   console.log(util.inspect(res.rows, { colors: true, depth: Infinity }));
   await client.end();
-  return res.rows;
+  return res.rows.map((x) => ({
+    id: x.id,
+    name: x.name,
+    location: x.location,
+    startDate: x.start_date,
+    endDate: x.end_date,
+  }));
 }
 
 async function addNewGroup(name: string): Promise<void> {
@@ -173,6 +245,21 @@ async function addNewGroup(name: string): Promise<void> {
     uuid.v4(),
     name,
   ]);
+  await client.end();
+}
+
+async function addNewEvent(
+  name: string,
+  location: string,
+  start_date: Date,
+  end_date: Date,
+  group_id: string
+): Promise<void> {
+  const client = await getPgClient();
+  await client.query(
+    'INSERT INTO "event" ("id", "name", "location", "start_date", "end_date", "group_id") VALUES ($1, $2, $3, $4, $5, $6)',
+    [uuid.v4(), name, location, start_date, end_date, group_id]
+  );
   await client.end();
 }
 
