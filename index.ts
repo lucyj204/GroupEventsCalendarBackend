@@ -74,7 +74,6 @@ app.get("/events", async (req, res) => {
     };
   }
 
-  console.log("LOGGY LOG OMG", eventsObject);
   console.log("LOGGY LOG JSON", JSON.stringify(eventsObject));
 
   res.send(eventsObject);
@@ -102,7 +101,9 @@ app.put("/events", async (req, res) => {
 
   console.log("Request", req.body);
 
-  const body: unknown = req.body;
+  // TODO: Reduce copypasta, maybe use something like io-ts or superstruct to help here.
+
+  const body: any = req.body;
 
   if (!(typeof body === "object" && body !== null)) {
     res.send("not an object");
@@ -119,27 +120,45 @@ app.put("/events", async (req, res) => {
     return;
   }
 
-  if (!("start_date" in body)) {
+  let startDate: Date;
+  if (("startDate" in body)) {
+    const bodyStartDate = body.startDate;
+    if (typeof bodyStartDate === "string") {
+      startDate = new Date(bodyStartDate);
+    } else {
+      res.send("start date was unexpected type (not string)");
+      return;
+    }
+  } else {
     res.send("start date missing");
     return;
   }
 
-  if (!("end_date" in body)) {
+  let endDate: Date;
+  if (("endDate" in body)) {
+    const bodyEndDate = body.endDate;
+    if (typeof bodyEndDate === "string") {
+      endDate = new Date(bodyEndDate);
+    } else {
+      res.send("end date was unexpected type (not string)");
+      return;
+    }
+  } else {
     res.send("end date missing");
     return;
   }
 
-  if (!("group_id" in body)) {
-    res.send("group id missing");
+  if (!("groupId" in body)) {
+    res.send("Group ID missing");
     return;
   }
 
   await addNewEvent(
     (body as any).name,
     (body as any).location,
-    (body as any).start_date,
-    (body as any).end_date,
-    (body as any).group_id
+    startDate,
+    endDate,
+    (body as any).groupId
   );
   res.send({ ok: {} });
 });
@@ -251,16 +270,19 @@ async function addNewGroup(name: string): Promise<void> {
 async function addNewEvent(
   name: string,
   location: string,
-  start_date: Date,
-  end_date: Date,
-  group_id: string
+  startDate: Date,
+  endDate: Date,
+  groupId: string
 ): Promise<void> {
   const client = await getPgClient();
-  await client.query(
-    'INSERT INTO "event" ("id", "name", "location", "start_date", "end_date", "group_id") VALUES ($1, $2, $3, $4, $5, $6)',
-    [uuid.v4(), name, location, start_date, end_date, group_id]
+  const res = await client.query(
+    'INSERT INTO "event" ("id", "name", "location", "start_date", "end_date", "group_id") VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+    [uuid.v4(), name, location, startDate, endDate, groupId]
   );
+
+  console.log(util.inspect(res.rows, { colors: true, depth: Infinity }));
   await client.end();
+
 }
 
 async function deleteGroup(id: string): Promise<void> {
